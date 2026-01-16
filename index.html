@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>108課綱學測公民模擬App</title>
+    <!-- 引入 React 和 ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- 引入 Babel 用於解析 JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; }
+        .font-serif { font-family: 'Noto Serif TC', serif; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-100 h-screen w-full flex justify-center items-center overflow-hidden">
+    <div id="root" class="w-full h-full max-w-md bg-white shadow-2xl relative flex flex-col"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // -----------------------------------------------------------------------------
+        // 0. 內建圖標元件
+        // -----------------------------------------------------------------------------
+        const Icons = {
+            Scale: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2v2H3z"/><path d="M19 7h2v2h-2z"/></svg>, // For Law/Civics
+            TrendingUp: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>, // For Economics
+            Users: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, // For Society
+            Vote: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m9 12 2 2 4-4"/><path d="M5 7c0-1.1.9-2 2-2h10a2 2 0 0 1 2 2v12H5V7Z"/><path d="M22 19H2"/></svg>, // For Politics
+            Home: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+            Grid: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>,
+            Flag: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg>,
+            ChevronLeft: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m15 18-6-6 6-6"/></svg>,
+            ChevronRight: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m9 18 6-6-6-6"/></svg>,
+            Award: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>,
+            XCircle: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>,
+            RotateCcw: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>,
+            Zap: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+            Tag: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94 .94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>
+        };
+
+        const { Scale, TrendingUp, Users, Vote, Home, Grid, Flag, ChevronLeft, ChevronRight, Award, XCircle, RotateCcw, Zap, Tag } = Icons;
+
+        // -----------------------------------------------------------------------------
+        // 1. 真實題庫範例 (Real Questions)
+        // -----------------------------------------------------------------------------
+        const REAL_QUESTION_EXAMPLES = [
+            {
+                id: 'real_civics_1',
+                type: 'single',
+                category: '經濟學',
+                text: '當某國發生嚴重豬瘟疫情，導致豬肉供給大幅減少。在其他條件不變的情況下，下列關於豬肉市場的敘述，何者正確？',
+                options: [
+                    '供給曲線向右移動，均衡價格下跌',
+                    '供給曲線向左移動，均衡價格上漲',
+                    '需求曲線向左移動，均衡數量減少',
+                    '需求曲線向右移動，均衡價格上漲'
+                ],
+                correctAnswer: [1],
+                explanation: '疫情導致供給減少，供給曲線向左移動(S1->S2)，在需求不變下，會造成均衡價格上漲，均衡數量減少。',
+                difficulty: '易'
+            },
+            {
+                id: 'real_civics_2',
+                type: 'single',
+                category: '法律 (民法)',
+                text: '小明今年 19 歲，未婚，在未經父母同意下，購買了一輛價值 50 萬元的重型機車。依據我國現行《民法》，此法律行為之效力為何？',
+                options: [
+                    '無效，因為未滿 20 歲',
+                    '效力未定，需法定代理人承認才有效',
+                    '有效，因為小明已滿 18 歲，為完全行為能力人',
+                    '得撤銷，因為金額過大顯不相當'
+                ],
+                correctAnswer: [2],
+                explanation: '我國《民法》已修正成年年齡為 18 歲。小明 19 歲已屬完全行為能力人，其法律行為完全有效，無需父母同意。',
+                difficulty: '中'
+            },
+            {
+                id: 'real_civics_3',
+                type: 'single',
+                category: '政治 (政府體制)',
+                text: '某國實施內閣制，下列關於該國政治運作的敘述，何者最可能發生？',
+                options: [
+                    '總統由人民直接選舉產生，並掌握最高行政權',
+                    '行政首長（總理）有權解散國會',
+                    '行政部門與立法部門完全分立，互不制衡',
+                    '國會議員不得兼任內閣閣員'
+                ],
+                correctAnswer: [1],
+                explanation: '內閣制特徵：行政首長由國會多數黨領袖擔任，行政與立法權融合。總理有權解散國會，國會可對內閣提不信任案。A是總統制，D是總統制特徵(權力分立)。',
+                difficulty: '中'
+            },
+            {
+                id: 'real_civics_4',
+                type: 'group',
+                category: '混合題 (人權)',
+                passageTitle: '居住正義與迫遷',
+                passageContent: `某市政府為興建科技園區，計畫徵收市郊農地並拆遷當地聚落。居民抗議政府未經充分溝通即強行徵收，且補償金過低，侵害其生存權與居住權。政府則回應是為了公共利益與經濟發展。`,
+                questions: [
+                    {
+                        id: 'real_civics_4_1',
+                        type: 'single',
+                        text: '政府徵收土地的行為，主要涉及憲法第 23 條中的哪一項公益原則？',
+                        options: [
+                            '增進公共利益',
+                            '避免緊急危難',
+                            '維持社會秩序',
+                            '防止妨礙他人自由'
+                        ],
+                        correctAnswer: [0],
+                        explanation: '徵收土地通常是以「增進公共利益」(如經濟發展、公共建設) 為理由。',
+                        difficulty: '易'
+                    },
+                    {
+                        id: 'real_civics_4_2',
+                        type: 'single',
+                        text: '若居民認為徵收程序違法，欲提起行政救濟，下列順序何者正確？',
+                        options: [
+                            '請願 → 訴願 → 行政訴訟',
+                            '訴願 → 行政訴訟',
+                            '民事訴訟 → 行政訴訟',
+                            '向監察院陳情 → 憲法訴訟'
+                        ],
+                        correctAnswer: [1],
+                        explanation: '對行政處分不服，應先提起「訴願」，若不服訴願決定，再提起「行政訴訟」。',
+                        difficulty: '中'
+                    }
+                ]
+            }
+        ];
+
+        // -----------------------------------------------------------------------------
+        // 2. 公民題庫產生器資料庫 (Expanded Database)
+        // -----------------------------------------------------------------------------
+
+        // 經濟學模組
+        const ECON_CONCEPTS = [
+            { topic: '供需法則', q: '若政府對珍珠奶茶設定「價格下限」(Price Floor) 且高於均衡價格，市場將出現何種情況？', ans: '超額供給 (Surplus)', opts: ['超額需求 (Shortage)', '市場均衡', '黑市交易'] },
+            { topic: 'GDP計算', q: '下列何者應計入台灣當年度的 GDP？', ans: '台積電在台灣生產的晶片產值', opts: ['台灣人在美國開餐廳的收入(GNP)', '家庭主婦在家做的家事(無市場交易)', '二手車商轉賣舊車的價金(非當期生產)'] },
+            { topic: '外部性', q: '工廠排放廢水汙染河川，導致下游漁民漁獲減少。這在經濟學上稱為？', ans: '外部成本 (負面外部性)', opts: ['外部效益', '公共財', '資訊不對稱'] },
+            { topic: '機會成本', q: '小華放棄時薪160元的打工，選擇去看一場票價300元的電影(需耗時2小時)。請問他看電影的機會成本是多少？', ans: '620元 (300+160*2)', opts: ['300元', '320元', '460元'] }, // 票價+少賺的錢
+            { topic: '比較利益', q: '依據比較利益法則，國與國之間進行貿易的基礎是？', ans: '生產機會成本較低的產品', opts: ['生產力最高的產品', '生產利潤最高的產品', '擁有絕對利益的產品'] }
+        ];
+
+        // 法律模組 (包含18歲成年新制)
+        const LAW_CONCEPTS = [
+            { topic: '責任能力', q: '小明今年 15 歲，在學校與同學打架造成對方受傷。關於其法律責任，下列何者正確？', ans: '具有限制責任能力，得減輕其刑', opts: ['無責任能力，不罰', '為完全責任能力人，負全責', '僅負民事賠償責任，無刑事責任'] },
+            { topic: '民法行為能力', q: '依據現行民法，幾歲為完全行為能力人，可獨立簽訂契約？', ans: '18 歲', opts: ['20 歲', '16 歲', '21 歲'] },
+            { topic: '權利救濟', q: '小美與房東發生租屋糾紛，雙方不想上法院，可尋求下列何種途徑解決？', ans: '向鄉鎮市區公所申請調解', opts: ['向警察局報案', '向檢察官提起公訴', '申請釋憲'] },
+            { topic: '行政法', q: '下列何者屬於行政處分？', ans: '衛生局對餐廳開出的罰單', opts: ['氣象局發布颱風警報(事實行為)', '行政機關內部的公文往來', '市政府與廠商簽訂採購契約(行政契約)'] },
+            { topic: '憲法權利', q: '政府限制人民言論自由，必須符合憲法第23條的比例原則。下列何者「不」是比例原則的子原則？', ans: '誠實信用原則', opts: ['適當性原則', '必要性原則', '衡量性原則(狹義比例原則)'] }
+        ];
+
+        // 政治模組
+        const POL_CONCEPTS = [
+            { topic: '選舉制度', q: '我國立法委員選舉採行的制度為何？', ans: '單一選區兩票制 (並立制)', opts: ['複數選區單記法', '單一選區兩票制 (聯立制)', '比例代表制'] },
+            { topic: '政府體制', q: '下列何者是「總統制」的特徵？', ans: '總統具有覆議權，可否決國會法案', opts: ['行政首長可解散國會', '國會可對行政首長提不信任案', '行政首長由國會選出'] },
+            { topic: '國際關係', q: '關於聯合國 (UN)，下列敘述何者正確？', ans: '安全理事會的5個常任理事國擁有否決權', opts: ['秘書長由常任理事國輪流擔任', '所有決議對會員國皆有法律拘束力', '我國目前是以觀察員身分參與'] },
+            { topic: '公民投票', q: '依據我國公投法，公民投票的提案人年齡門檻為何？', ans: '18 歲', opts: ['20 歲', '21 歲', '16 歲'] },
+            { topic: '基本人權', q: '強調國家應積極介入，保障人民享有教育、工作、社會福利等權利，屬於第幾代人權？', ans: '第二代人權 (社會權)', opts: ['第一代人權 (自由權)', '第三代人權 (集體權)', '第四代人權 (資訊權)'] }
+        ];
+
+        // 社會模組
+        const SOC_CONCEPTS = [
+            { topic: '媒體識讀', q: '媒體在報導新聞時，刻意選取特定角度或忽略部分事實，引導閱聽人產生特定觀點，稱為？', ans: '媒體框架 (Framing)', opts: ['媒體近用權', '守門人機制', '置入性行銷'] },
+            { topic: '性別平等', q: '玻璃天花板效應 (Glass Ceiling) 通常用來形容？', ans: '女性在職場升遷上遇到無形的障礙', opts: ['女性薪資高於男性', '職場性騷擾防治', '性別刻板印象的消除'] },
+            { topic: '社會階層', q: '一個人的社會地位若是透過個人努力、受教育而取得，稱為？', ans: '成就地位', opts: ['歸屬地位', '世襲地位', '先天地位'] },
+            { topic: '文化概念', q: '認為自己的文化最優秀，並以自身文化標準評斷其他文化，稱為？', ans: '我族中心主義', opts: ['文化相對論', '多元文化主義', '文化位階'] },
+            { topic: '公共利益', q: '「搭便車難題」(Free-rider problem) 最常出現在哪種財貨上？', ans: '公共財 (如國防、路燈)', opts: ['私有財', '準私有財', '俱樂部財'] }
+        ];
+
+        // -----------------------------------------------------------------------------
+        // Helper: Fisher-Yates Shuffle
+        // -----------------------------------------------------------------------------
+        const fisherYatesShuffle = (array) => {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex !== 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        };
+
+        // -----------------------------------------------------------------------------
+        // Generator Logic
+        // -----------------------------------------------------------------------------
+        const generateCivicsMock = (category, itemIndex, variantCount) => {
+            const shuffle = (arr) => [...arr].sort(() => 0.5 - Math.random());
+            const isReview = variantCount > 0;
+            const reviewLabel = isReview ? '【💡複習變體】' : '';
+
+            let db, icon, colorClass, categoryName;
+
+            switch(category) {
+                case 'econ': 
+                    db = ECON_CONCEPTS; 
+                    icon = <Icons.TrendingUp size={16} />; 
+                    colorClass = "text-emerald-700 bg-emerald-100";
+                    categoryName = "經濟";
+                    break;
+                case 'law': 
+                    db = LAW_CONCEPTS; 
+                    icon = <Icons.Scale size={16} />; 
+                    colorClass = "text-rose-700 bg-rose-100";
+                    categoryName = "法律";
+                    break;
+                case 'pol': 
+                    db = POL_CONCEPTS; 
+                    icon = <Icons.Vote size={16} />; 
+                    colorClass = "text-blue-700 bg-blue-100";
+                    categoryName = "政治";
+                    break;
+                case 'soc': 
+                    db = SOC_CONCEPTS; 
+                    icon = <Icons.Users size={16} />; 
+                    colorClass = "text-amber-700 bg-amber-100";
+                    categoryName = "社會";
+                    break;
+            }
+
+            const item = db[itemIndex % db.length];
+            const distractors = shuffle(item.opts);
+            
+            // 變體邏輯：如果是複習題，稍微修改問法
+            let qText = item.q;
+            if (isReview) {
+                if (qText.includes('下列何者')) qText = qText.replace('下列何者', '請選出');
+                else qText = `(觀念強化) ${qText}`;
+            }
+
+            return {
+                category: categoryName,
+                text: `${reviewLabel} [${item.topic}] ${qText}`,
+                options: [item.ans, ...distractors],
+                explanation: `正確答案為「${item.ans}」。本題考點為：${item.topic}。`,
+                correctIndex: 0,
+                isReview,
+                colorClass,
+                icon
+            };
+        };
+
+        const generateMockQuestions = (startId, count) => {
+            const mocks = [];
+            const categories = ['econ', 'law', 'pol', 'soc'];
+            let taskPool = [];
+            
+            // 計算總基礎題數
+            const totalBaseItems = ECON_CONCEPTS.length + LAW_CONCEPTS.length + POL_CONCEPTS.length + SOC_CONCEPTS.length;
+            const loopsNeeded = Math.ceil(count / totalBaseItems) + 1;
+
+            for (let loop = 0; loop < loopsNeeded; loop++) {
+                categories.forEach(cat => {
+                    let len = 0;
+                    if(cat === 'econ') len = ECON_CONCEPTS.length;
+                    if(cat === 'law') len = LAW_CONCEPTS.length;
+                    if(cat === 'pol') len = POL_CONCEPTS.length;
+                    if(cat === 'soc') len = SOC_CONCEPTS.length;
+
+                    for (let i = 0; i < len; i++) {
+                        taskPool.push({ cat, itemIndex: i, variantCount: loop });
+                    }
+                });
+            }
+
+            taskPool = fisherYatesShuffle(taskPool);
+            const selectedTasks = taskPool.slice(0, count);
+
+            selectedTasks.forEach((task, i) => {
+                const content = generateCivicsMock(task.cat, task.itemIndex, task.variantCount);
+                
+                let finalOptions = content.options.map((text, idx) => ({ 
+                    text, 
+                    isCorrect: idx === content.correctIndex 
+                }));
+                finalOptions = fisherYatesShuffle(finalOptions);
+                
+                let correctIndices = [];
+                finalOptions.forEach((opt, idx) => {
+                    if (opt.isCorrect) correctIndices.push(idx);
+                });
+
+                const answerLabels = correctIndices.map(idx => String.fromCharCode(65 + idx)).join(', ');
+
+                mocks.push({
+                    id: `mock_civics_${startId + i}`,
+                    type: 'single', 
+                    category: content.category,
+                    text: `[Q${startId + i}] ${content.text}`,
+                    options: finalOptions.map(o => o.text),
+                    correctAnswer: correctIndices,
+                    explanation: `${content.explanation} (答案: ${answerLabels})`,
+                    difficulty: ['易', '中', '難'][Math.floor(Math.random() * 3)],
+                    isReview: content.isReview,
+                    colorClass: content.colorClass
+                });
+            });
+            return mocks;
+        };
+
+        // -----------------------------------------------------------------------------
+        // App Component
+        // -----------------------------------------------------------------------------
+        function CivicsApp() {
+            const [currentScreen, setCurrentScreen] = useState('home'); 
+            const [questions, setQuestions] = useState([]);
+            const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+            const [userAnswers, setUserAnswers] = useState({});
+            const [markedQuestions, setMarkedQuestions] = useState(new Set()); 
+            const [showExplanation, setShowExplanation] = useState(false);
+            const [showGrid, setShowGrid] = useState(false); 
+
+            useEffect(() => {
+                let flattened = [];
+                REAL_QUESTION_EXAMPLES.forEach(item => {
+                    if (item.type === 'group') {
+                        item.questions.forEach(q => {
+                            flattened.push({
+                                ...q,
+                                groupTitle: item.passageTitle,
+                                groupContent: item.passageContent,
+                                isGroup: true,
+                                colorClass: "text-gray-700 bg-gray-100"
+                            });
+                        });
+                    } else {
+                        flattened.push({
+                             ...item,
+                             colorClass: "text-indigo-700 bg-indigo-100"
+                        });
+                    }
+                });
+
+                const currentCount = flattened.length;
+                const needed = 500 - currentCount;
+                if (needed > 0) {
+                    const mocks = generateMockQuestions(currentCount + 1, needed);
+                    flattened = [...flattened, ...mocks];
+                }
+
+                setQuestions(flattened);
+            }, []);
+
+            const startExam = () => {
+                setCurrentQuestionIndex(0);
+                setUserAnswers({});
+                setMarkedQuestions(new Set());
+                setShowExplanation(false);
+                setShowGrid(false);
+                setCurrentScreen('quiz');
+            };
+
+            const handleAnswerSelect = (optionIndex) => {
+                if (showExplanation) return; 
+                const currentQ = questions[currentQuestionIndex];
+                setUserAnswers(prev => ({ ...prev, [currentQ.id]: [optionIndex] }));
+                setShowExplanation(true);
+            };
+
+            const toggleMarkQuestion = () => {
+                const qId = questions[currentQuestionIndex].id;
+                setMarkedQuestions(prev => {
+                    const newSet = new Set(prev);
+                    if (newSet.has(qId)) newSet.delete(qId);
+                    else newSet.add(qId);
+                    return newSet;
+                });
+            };
+
+            const calculateScore = () => {
+                let rawScore = 0;
+                questions.forEach(q => {
+                    const userAns = userAnswers[q.id] || [];
+                    const correctAns = q.correctAnswer;
+                    if (userAns.length > 0 && userAns[0] === correctAns[0]) {
+                        rawScore++;
+                    }
+                });
+                const percentage = (rawScore / questions.length) * 100;
+                let rank = 0;
+                if (percentage >= 90) rank = 15;
+                else if (percentage >= 85) rank = 14;
+                else if (percentage >= 80) rank = 13;
+                else if (percentage >= 70) rank = 11;
+                else if (percentage >= 60) rank = 9;
+                else rank = Math.floor(percentage / 10) + 1;
+
+                return { rawScore, total: questions.length, rank, percentage };
+            };
+
+            const QuestionGrid = ({ closeGrid }) => (
+                <div className="fixed inset-0 bg-black/50 z-50 flex justify-end animate-fade-in">
+                    <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-slide-in-right">
+                        <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+                            <h3 className="font-bold text-lg text-gray-800 flex items-center font-serif">
+                                <Icons.Grid size={20} className="mr-2"/> 題目導航
+                            </h3>
+                            <button onClick={closeGrid} className="p-2 hover:bg-gray-200 rounded-full">
+                                <Icons.XCircle size={24} className="text-gray-500"/>
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4">
+                            <div className="grid grid-cols-5 gap-3">
+                                {questions.map((qItem, idx) => {
+                                    const isAnswered = userAnswers[qItem.id] && userAnswers[qItem.id].length > 0;
+                                    const isMarkedItem = markedQuestions.has(qItem.id);
+                                    const isCurrent = currentQuestionIndex === idx;
+                                    let btnClass = "h-10 w-10 rounded-lg flex items-center justify-center text-sm font-medium transition relative font-serif ";
+                                    if (isCurrent) btnClass += "ring-2 ring-slate-600 ring-offset-2 bg-slate-200 text-slate-800 font-bold ";
+                                    else if (isAnswered) btnClass += "bg-slate-600 text-white shadow-sm ";
+                                    else btnClass += "bg-slate-100 text-gray-500 hover:bg-slate-200 ";
+
+                                    return (
+                                        <button 
+                                            key={qItem.id} 
+                                            onClick={() => { setCurrentQuestionIndex(idx); setShowExplanation(false); closeGrid(); }}
+                                            className={btnClass}
+                                        >
+                                            {idx + 1}
+                                            {isMarkedItem && <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border border-white"></span>}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            if (currentScreen === 'home') return (
+                <div className="flex flex-col items-center justify-center h-full p-6 space-y-8 animate-fade-in bg-gradient-to-br from-slate-200 to-gray-200">
+                    <div className="text-center space-y-4 max-w-lg">
+                        <div className="bg-slate-700 p-6 rounded-full inline-block mb-2 shadow-xl">
+                            <Icons.Scale size={64} className="text-white" />
+                        </div>
+                        <h1 className="text-3xl font-extrabold text-gray-800 tracking-tight font-serif">108課綱 • 公民與社會</h1>
+                        <p className="text-lg text-gray-600 font-medium">社會 • 政治 • 法律 • 經濟</p>
+                        <div className="flex flex-wrap justify-center gap-2 mt-4">
+                           <span className="px-3 py-1 bg-white border border-slate-300 rounded-full text-sm text-slate-600">500題庫</span>
+                           <span className="px-3 py-1 bg-white border border-slate-300 rounded-full text-sm text-slate-600">素養導向</span>
+                           <span className="px-3 py-1 bg-white border border-slate-300 rounded-full text-sm text-slate-600">隨機變體</span>
+                        </div>
+                    </div>
+                    <div className="w-full max-w-sm">
+                        <button 
+                            onClick={startExam}
+                            className="w-full flex items-center justify-center p-5 bg-slate-700 text-white rounded-xl shadow-lg hover:bg-slate-800 transition transform hover:-translate-y-1 group font-serif"
+                        >
+                            <div className="bg-white/10 p-2 rounded-full mr-3 group-hover:scale-110 transition">
+                                <Icons.Zap size={24} className="text-white" />
+                            </div>
+                            <div className="text-left">
+                                <span className="block font-bold text-xl">開始測驗</span>
+                                <span className="text-sm text-slate-300">Civics Practice</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            );
+
+            if (currentScreen === 'result') {
+                const { rawScore, total, rank, percentage } = calculateScore();
+                return (
+                    <div className="flex flex-col items-center h-full bg-slate-100 p-6 overflow-y-auto font-serif">
+                        <div className="w-full max-w-md space-y-6 mt-8">
+                            <div className="bg-white rounded-3xl shadow-xl p-8 text-center relative overflow-hidden">
+                                <h2 className="text-3xl font-extrabold text-slate-800 mb-2">測驗結束</h2>
+                                <div className="flex justify-center my-8">
+                                    <div className="text-6xl font-black text-slate-800">{percentage.toFixed(0)}<span className="text-2xl text-slate-400 font-normal">分</span></div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 text-left">
+                                    <div className="bg-slate-100 p-4 rounded-2xl">
+                                        <p className="text-xs text-slate-500 font-bold mb-1">答對題數</p>
+                                        <p className="text-2xl font-bold text-slate-800">{rawScore} / {total}</p>
+                                    </div>
+                                    <div className="bg-slate-100 p-4 rounded-2xl">
+                                        <p className="text-xs text-slate-500 font-bold mb-1">換算級分</p>
+                                        <p className="text-2xl font-bold text-slate-800">{rank}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="space-y-3">
+                                <button onClick={() => setCurrentScreen('home')} className="w-full bg-slate-700 hover:bg-slate-800 text-white py-4 rounded-2xl font-bold shadow-lg transition flex items-center justify-center space-x-2">
+                                    <Icons.RotateCcw size={20} /> <span>重返首頁</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            const q = questions[currentQuestionIndex];
+            if (!q) return <div className="flex items-center justify-center h-full text-xl font-serif text-slate-500">試卷準備中...</div>;
+
+            const currentAns = userAnswers[q.id] || [];
+            const isMarked = markedQuestions.has(q.id);
+
+            return (
+                <div className="flex flex-col h-full bg-slate-50 relative font-sans">
+                    {showGrid && <QuestionGrid closeGrid={() => setShowGrid(false)} />}
+                    
+                    <div className="bg-white shadow-sm px-4 py-3 flex justify-between items-center sticky top-0 z-10 border-b border-slate-200">
+                        <div className="flex items-center space-x-3">
+                            <button onClick={() => setCurrentScreen('home')} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500">
+                                <Icons.Home size={20} />
+                            </button>
+                            <button onClick={() => setShowGrid(true)} className="flex items-center space-x-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg transition text-slate-700 font-medium">
+                                <Icons.Grid size={18} />
+                                <span>{currentQuestionIndex + 1} / {questions.length}</span>
+                            </button>
+                        </div>
+                        <button onClick={toggleMarkQuestion} className={`p-2 rounded-lg transition ${isMarked ? 'bg-rose-100 text-rose-500' : 'text-slate-400 hover:bg-slate-100'}`}>
+                            <Icons.Flag size={20} fill={isMarked ? "currentColor" : "none"} />
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-4 md:p-6 max-w-4xl mx-auto w-full scroll-smooth">
+                        {q.isGroup && (
+                            <div className="bg-slate-100 rounded-xl p-6 mb-6 shadow-sm border-l-4 border-slate-500">
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="font-bold text-lg text-slate-900">{q.groupTitle}</h3>
+                                    <span className="text-xs bg-slate-200 text-slate-700 px-2 py-1 rounded">題組</span>
+                                </div>
+                                <div className="prose prose-slate max-w-none text-slate-800 leading-relaxed text-base">
+                                    {q.groupContent}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="bg-white rounded-xl p-6 shadow-sm ring-1 ring-slate-200">
+                            <div className="flex items-center space-x-2 mb-4">
+                                <span className={`text-xs font-bold px-2 py-1 rounded bg-slate-200 text-slate-800`}>
+                                    單選題
+                                </span>
+                                <span className={`text-xs px-2 py-1 rounded border ${q.colorClass || 'text-gray-500 bg-gray-100 border-gray-200'}`}>
+                                    {q.category}
+                                </span>
+                                {q.isReview && <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200 flex items-center animate-pulse"><Icons.Tag size={12} className="mr-1" /> 複習變體</span>}
+                            </div>
+
+                            <h2 className="text-xl font-medium text-slate-900 mb-8 leading-relaxed whitespace-pre-wrap">
+                                {q.text}
+                            </h2>
+
+                            <div className="space-y-4">
+                                {q.options.map((option, idx) => {
+                                    const isSelected = currentAns.includes(idx);
+                                    let btnClass = "w-full text-left p-4 rounded-xl border transition-all flex items-start space-x-4 relative overflow-hidden ";
+                                    if (showExplanation) {
+                                        if (q.correctAnswer.includes(idx)) btnClass += "border-emerald-600 bg-emerald-50 text-emerald-900";
+                                        else if (isSelected) btnClass += "border-rose-500 bg-rose-50 text-rose-900";
+                                        else btnClass += "border-slate-100 text-slate-400 opacity-60";
+                                    } else {
+                                        if (isSelected) btnClass += "border-slate-600 bg-slate-100 text-slate-900 shadow-md";
+                                        else btnClass += "border-slate-200 hover:border-slate-400 hover:bg-slate-50 text-slate-700";
+                                    }
+
+                                    return (
+                                        <button key={idx} onClick={() => handleAnswerSelect(idx)} className={btnClass} disabled={showExplanation}>
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold border transition-colors ${
+                                                isSelected ? 'bg-slate-700 border-slate-700 text-white' : 'border-slate-300 text-slate-500'
+                                            } ${showExplanation && q.correctAnswer.includes(idx) ? '!bg-emerald-600 !border-emerald-600 !text-white' : ''}`}>
+                                                {String.fromCharCode(65 + idx)}
+                                            </div>
+                                            <span className="pt-1 text-lg">{option}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {showExplanation && (
+                                <div className="mt-8 bg-blue-50 p-5 rounded-xl border border-blue-100 animate-fade-in-up">
+                                    <div className="flex items-center space-x-2 text-blue-900 font-bold mb-3">
+                                        <Icons.Award size={20} />
+                                        <span>解析</span>
+                                    </div>
+                                    <p className="text-blue-900 leading-relaxed">{q.explanation}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="bg-white border-t border-slate-200 p-4 flex justify-between items-center safe-area-bottom">
+                        <button 
+                            onClick={() => { setShowExplanation(false); setCurrentQuestionIndex(prev => Math.max(0, prev - 1)); }}
+                            disabled={currentQuestionIndex === 0}
+                            className="flex items-center space-x-2 px-4 py-2 rounded-full text-slate-600 hover:bg-slate-100 disabled:opacity-30 transition"
+                        >
+                            <Icons.ChevronLeft size={20} /> <span>上一題</span>
+                        </button>
+                        
+                        <button 
+                            onClick={() => {
+                                if (currentQuestionIndex < questions.length - 1) { setShowExplanation(false); setCurrentQuestionIndex(prev => prev + 1); } 
+                                else { setCurrentScreen('result'); setShowGrid(false); }
+                            }}
+                            className="bg-slate-700 hover:bg-slate-800 text-white px-8 py-2.5 rounded-full font-bold shadow-md flex items-center transition"
+                        >
+                            {currentQuestionIndex === questions.length - 1 ? '完成' : '下一題'} <Icons.ChevronRight size={18} className="ml-1"/>
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<CivicsApp />);
+    </script>
+</body>
+</html>
